@@ -2,9 +2,8 @@ package com.example.solidus.domain.usecase
 
 import com.example.solidus.domain.model.Transaction
 import com.example.solidus.domain.repository.TransactionRepository
-import javax.inject.Inject
 
-class AddTransactionUseCase @Inject constructor(
+class AddTransactionUseCase(
     private val repository: TransactionRepository
 ) {
     suspend operator fun invoke(transaction: Transaction) {

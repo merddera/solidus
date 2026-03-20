@@ -12,6 +12,6 @@ interface TransactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: TransactionEntity)
 
-    @Query("SELECT * FROM transactions ORDER BY date DESC")
-    fun getAllTransactions(): Flow<List<TransactionEntity>>
+    @Query("SELECT * FROM transactions WHERE (:categoryId IS NULL OR categoryId = :categoryId) AND (:startDate IS NULL OR date >= :startDate) AND (:endDate IS NULL OR date <= :endDate) ORDER BY date DESC")
+    fun getFilteredTransactions(categoryId: Long?, startDate: Long?, endDate: Long?): Flow<List<TransactionEntity>>
 }

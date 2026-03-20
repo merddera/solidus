@@ -5,5 +5,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface TransactionRepository {
     suspend fun addTransaction(transaction: Transaction)
-    fun getTransactions(): Flow<List<Transaction>>
+    fun getTransactions(categoryId: Long? = null, startDate: Long? = null, endDate: Long? = null): Flow<List<Transaction>>
 }

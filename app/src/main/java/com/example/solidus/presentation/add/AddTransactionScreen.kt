@@ -4,12 +4,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import org.koin.androidx.compose.koinViewModel
 import com.example.solidus.domain.model.TransactionType
 import com.example.solidus.presentation.TransactionViewModel
 
@@ -17,11 +18,49 @@ import com.example.solidus.presentation.TransactionViewModel
 @Composable
 fun AddTransactionScreen(
     onNavigateBack: () -> Unit,
-    viewModel: TransactionViewModel = hiltViewModel()
+    viewModel: TransactionViewModel = koinViewModel()
 ) {
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var isIncome by remember { mutableStateOf(false) }
+    val activeCategories by viewModel.activeCategories.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<com.example.solidus.domain.model.Category?>(null) }
+    var titleError by remember { mutableStateOf(false) }
+    var amountError by remember { mutableStateOf(false) }
+    var categoryError by remember { mutableStateOf(false) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+
+    if (showAddCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddCategoryDialog = false },
+            title = { Text("Новая категория") },
+            text = {
+                OutlinedTextField(
+                    value = newCategoryName,
+                    onValueChange = { newCategoryName = it },
+                    label = { Text("Название") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newCategoryName.isNotBlank()) {
+                        viewModel.addCategory(newCategoryName)
+                        showAddCategoryDialog = false
+                        newCategoryName = ""
+                    }
+                }) {
+                    Text("Добавить")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddCategoryDialog = false }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -44,18 +83,66 @@ fun AddTransactionScreen(
         ) {
             OutlinedTextField(
                 value = title,
-                onValueChange = { title = it },
+                onValueChange = { title = it; titleError = false },
                 label = { Text("Название") },
+                isError = titleError,
+                supportingText = { if (titleError) Text("Обязательное поле") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = amount,
-                onValueChange = { amount = it },
+                onValueChange = { amount = it; amountError = false },
                 label = { Text("Сумма") },
+                isError = amountError,
+                supportingText = { if (amountError) Text("Сумма должна быть > 0") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                OutlinedTextField(
+                    value = selectedCategory?.name ?: "Выберите категорию",
+                    onValueChange = {},
+                    readOnly = true,
+                    isError = categoryError,
+                    supportingText = { if (categoryError) Text("Выберите категорию") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    activeCategories.forEach { category ->
+                        DropdownMenuItem(
+                            text = { Text(category.name) },
+                            onClick = {
+                                selectedCategory = category
+                                expanded = false
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { 
+                                    viewModel.archiveCategory(category.id)
+                                    if (selectedCategory?.id == category.id) selectedCategory = null 
+                                }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete Category")
+                                }
+                            }
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text("➕ Добавить категорию...", color = MaterialTheme.colorScheme.primary) },
+                        onClick = {
+                            expanded = false
+                            showAddCategoryDialog = true
+                        }
+                    )
+                }
+            }
 
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Доход?")
@@ -68,12 +155,17 @@ fun AddTransactionScreen(
 
             Button(
                 onClick = {
-                    val amountDouble = amount.toDoubleOrNull()
-                    if (title.isNotBlank() && amountDouble != null && amountDouble > 0) {
+                    val result = viewModel.validateInput(title, amount, selectedCategory?.id)
+                    titleError = !result.isTitleValid
+                    amountError = !result.isAmountValid
+                    categoryError = !result.isCategoryValid
+
+                    if (result.isValid) {
                         viewModel.addTransaction(
                             title = title,
-                            amount = amountDouble,
-                            type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE
+                            amount = amount.toDouble(),
+                            type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
+                            categoryId = selectedCategory?.id
                         )
                         onNavigateBack()
                     }

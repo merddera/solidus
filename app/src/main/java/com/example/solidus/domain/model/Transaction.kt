@@ -5,5 +5,6 @@ data class Transaction(
     val amount: Double,
     val title: String,
     val date: Long,
-    val type: TransactionType
+    val type: TransactionType,
+    val categoryId: Long? = null
 )

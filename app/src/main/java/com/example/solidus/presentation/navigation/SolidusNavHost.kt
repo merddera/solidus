@@ -15,11 +15,17 @@ fun SolidusNavHost(
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
             HomeScreen(
-                onNavigateToAdd = { navController.navigate("add_transaction") }
+                onNavigateToAdd = { navController.navigate("add_transaction") },
+                onNavigateToSettings = { navController.navigate("settings") }
             )
         }
         composable("add_transaction") {
             AddTransactionScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable("settings") {
+            com.example.solidus.presentation.settings.SettingsScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
