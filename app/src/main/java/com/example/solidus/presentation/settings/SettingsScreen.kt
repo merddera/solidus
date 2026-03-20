@@ -19,6 +19,8 @@ fun SettingsScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val hideBalance by viewModel.hideBalance.collectAsState()
     val currencies by viewModel.availableCurrencies.collectAsState()
+    var showClearDialog by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -51,18 +53,18 @@ fun SettingsScreen(
                 )
             }
 
-            HorizontalDivider()
+            Divider()
 
             Text("Базовая валюта", style = MaterialTheme.typography.bodyLarge)
             
-            var expanded by remember { mutableStateOf(false) }
+            val popularCurrencies = mapOf("USD" to "$", "EUR" to "€", "RUB" to "₽", "CNY" to "¥", "GBP" to "£")
 
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
-                    value = selectedCurrency,
+                    value = popularCurrencies[selectedCurrency]?.let { "$it $selectedCurrency" } ?: selectedCurrency,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Валюта") },
@@ -75,24 +77,59 @@ fun SettingsScreen(
                     onDismissRequest = { expanded = false }
                 ) {
                     val uniqueCodes = currencies.map { it.currencyCode }.distinct().sorted()
-                    if (uniqueCodes.isEmpty()) {
+                    
+                    popularCurrencies.forEach { (code, symbol) ->
                         DropdownMenuItem(
-                            text = { Text(selectedCurrency) },
-                            onClick = { expanded = false }
+                            text = { Text("$symbol $code") },
+                            onClick = {
+                                viewModel.setSelectedCurrency(code)
+                                expanded = false
+                            }
                         )
-                    } else {
-                        uniqueCodes.forEach { code ->
-                            DropdownMenuItem(
-                                text = { Text(code) },
-                                onClick = {
-                                    viewModel.setSelectedCurrency(code)
-                                    expanded = false
-                                }
-                            )
-                        }
+                    }
+                    
+                    Divider()
+                    
+                    uniqueCodes.filterNot { popularCurrencies.containsKey(it) }.forEach { code ->
+                        DropdownMenuItem(
+                            text = { Text(code) },
+                            onClick = {
+                                viewModel.setSelectedCurrency(code)
+                                expanded = false
+                            }
+                        )
                     }
                 }
             }
+            
+            Spacer(modifier = Modifier.weight(1f))
+            
+            Button(
+                onClick = { showClearDialog = true },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Очистить все данные")
+            }
         }
+    }
+
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            title = { Text("Внимание") },
+            text = { Text("Вы уверены, что хотите безвозвратно удалить все транзакции? Это действие нельзя отменить.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearAllTransactions()
+                    showClearDialog = false
+                }) {
+                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) { Text("Отмена") }
+            }
+        )
     }
 }

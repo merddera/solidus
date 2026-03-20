@@ -3,6 +3,7 @@ package com.example.solidus.presentation.add
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
@@ -17,6 +18,7 @@ import com.example.solidus.presentation.TransactionViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddTransactionScreen(
+    transactionId: Long?,
     onNavigateBack: () -> Unit,
     viewModel: TransactionViewModel = koinViewModel()
 ) {
@@ -31,6 +33,37 @@ fun AddTransactionScreen(
     var categoryError by remember { mutableStateOf(false) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    var selectedTimeMillis by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(transactionId) {
+        if (transactionId != null) {
+            val transaction = viewModel.getTransaction(transactionId)
+            if (transaction != null) {
+                title = transaction.title
+                amount = transaction.amount.toString()
+                isIncome = transaction.type == TransactionType.INCOME
+                selectedCategory = activeCategories.find { it.id == transaction.categoryId }
+                datePickerState.setSelection(transaction.date)
+                selectedTimeMillis = transaction.date
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("ОК") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Отмена") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 
     if (showAddCategoryDialog) {
         AlertDialog(
@@ -87,6 +120,7 @@ fun AddTransactionScreen(
                 label = { Text("Название") },
                 isError = titleError,
                 supportingText = { if (titleError) Text("Обязательное поле") },
+                keyboardOptions = KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -153,6 +187,57 @@ fun AddTransactionScreen(
                 )
             }
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = datePickerState.selectedDateMillis?.let { 
+                        java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault()).format(java.util.Date(it)) 
+                    } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Дата") },
+                    modifier = Modifier.weight(1f),
+                    trailingIcon = {
+                        IconButton(onClick = { showDatePicker = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "Выбрать дату")
+                        }
+                    }
+                )
+
+                OutlinedTextField(
+                    value = selectedTimeMillis?.let { 
+                        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it)) 
+                    } ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Время") },
+                    modifier = Modifier.weight(1f),
+                    trailingIcon = {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        IconButton(onClick = { 
+                            val calendar = java.util.Calendar.getInstance()
+                            if (selectedTimeMillis != null) calendar.timeInMillis = selectedTimeMillis!!
+                            android.app.TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    val newCal = java.util.Calendar.getInstance()
+                                    newCal.set(java.util.Calendar.HOUR_OF_DAY, hour)
+                                    newCal.set(java.util.Calendar.MINUTE, minute)
+                                    selectedTimeMillis = newCal.timeInMillis
+                                },
+                                calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                                calendar.get(java.util.Calendar.MINUTE),
+                                true
+                            ).show()
+                        }) {
+                            Icon(Icons.Default.Add, contentDescription = "Выбрать время")
+                        }
+                    }
+                )
+            }
+
             Button(
                 onClick = {
                     val result = viewModel.validateInput(title, amount, selectedCategory?.id)
@@ -161,12 +246,41 @@ fun AddTransactionScreen(
                     categoryError = !result.isCategoryValid
 
                     if (result.isValid) {
-                        viewModel.addTransaction(
-                            title = title,
-                            amount = amount.toDouble(),
-                            type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
-                            categoryId = selectedCategory?.id
-                        )
+                        val finalDate = datePickerState.selectedDateMillis
+                        val combinedDate = if (selectedTimeMillis != null) {
+                            val dateCal = java.util.Calendar.getInstance().apply { timeInMillis = finalDate ?: System.currentTimeMillis() }
+                            val timeCal = java.util.Calendar.getInstance().apply { timeInMillis = selectedTimeMillis!! }
+                            dateCal.set(java.util.Calendar.HOUR_OF_DAY, timeCal.get(java.util.Calendar.HOUR_OF_DAY))
+                            dateCal.set(java.util.Calendar.MINUTE, timeCal.get(java.util.Calendar.MINUTE))
+                            dateCal.timeInMillis
+                        } else if (finalDate != null) {
+                            val dateCal = java.util.Calendar.getInstance().apply { timeInMillis = finalDate }
+                            val now = java.util.Calendar.getInstance()
+                            dateCal.set(java.util.Calendar.HOUR_OF_DAY, now.get(java.util.Calendar.HOUR_OF_DAY))
+                            dateCal.set(java.util.Calendar.MINUTE, now.get(java.util.Calendar.MINUTE))
+                            dateCal.timeInMillis
+                        } else {
+                            System.currentTimeMillis()
+                        }
+
+                        if (transactionId != null) {
+                            viewModel.updateTransaction(
+                                id = transactionId,
+                                title = title,
+                                amount = amount.toDouble(),
+                                type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
+                                categoryId = selectedCategory?.id,
+                                date = combinedDate
+                            )
+                        } else {
+                            viewModel.addTransaction(
+                                title = title,
+                                amount = amount.toDouble(),
+                                type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
+                                categoryId = selectedCategory?.id,
+                                date = combinedDate
+                            )
+                        }
                         onNavigateBack()
                     }
                 },

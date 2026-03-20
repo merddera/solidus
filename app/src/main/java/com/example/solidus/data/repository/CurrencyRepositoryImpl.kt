@@ -24,17 +24,12 @@ class CurrencyRepositoryImpl(
     override suspend fun syncRates() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         try {
             val response = api.getLatestRates()
-            val entities = response.rates.map { (code, rate) ->
+            val rateEntities = response.rates.map { (code, rate) ->
                 CurrencyRateEntity(currencyCode = code, rate = rate)
-            }
-            
-            // The API doesn't include the base currency in the rates map. We save it explicitly as 1.0.
-            val baseEntity = CurrencyRateEntity(currencyCode = response.base, rate = 1.0)
-            
-            val allRates = entities + baseEntity
+            } + CurrencyRateEntity(currencyCode = response.base_code, rate = 1.0)
             
             dao.clearRates()
-            dao.insertRates(allRates)
+            dao.insertRates(rateEntities)
             
             settings.setLastCurrencyUpdate(System.currentTimeMillis())
         } catch (e: Exception) {

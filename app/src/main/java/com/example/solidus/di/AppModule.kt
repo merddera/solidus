@@ -61,13 +61,16 @@ val appModule = module {
     single<com.example.solidus.domain.repository.CurrencyRepository> { com.example.solidus.data.repository.CurrencyRepositoryImpl(get(), get(), get()) }
 
     // UseCases
-    factory { GetTransactionsUseCase(get()) }
-    factory { AddTransactionUseCase(get()) }
+    factory { com.example.solidus.domain.usecase.GetTransactionsUseCase(get()) }
+    factory { com.example.solidus.domain.usecase.AddTransactionUseCase(get()) }
+    factory { com.example.solidus.domain.usecase.GetTransactionByIdUseCase(get()) }
+    factory { com.example.solidus.domain.usecase.UpdateTransactionUseCase(get()) }
     factory { com.example.solidus.domain.usecase.GetCategoriesUseCase(get()) }
     factory { com.example.solidus.domain.usecase.AddCategoryUseCase(get()) }
     factory { com.example.solidus.domain.usecase.ArchiveCategoryUseCase(get()) }
+    factory { com.example.solidus.domain.usecase.CurrencyConverterUseCase() }
 
     // ViewModel
-    viewModel { TransactionViewModel(get(), get(), get(), get(), get(), get()) }
-    viewModel { com.example.solidus.presentation.settings.SettingsViewModel(get(), get()) }
+    viewModel { TransactionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { com.example.solidus.presentation.settings.SettingsViewModel(get(), get(), get()) }
 }

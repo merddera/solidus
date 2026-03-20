@@ -25,10 +25,14 @@ import com.example.solidus.domain.model.Category
 class TransactionViewModel(
     getTransactionsUseCase: GetTransactionsUseCase,
     private val addTransactionUseCase: AddTransactionUseCase,
+    private val getTransactionByIdUseCase: com.example.solidus.domain.usecase.GetTransactionByIdUseCase,
+    private val updateTransactionUseCase: com.example.solidus.domain.usecase.UpdateTransactionUseCase,
     getCategoriesUseCase: com.example.solidus.domain.usecase.GetCategoriesUseCase,
     private val addCategoryUseCase: com.example.solidus.domain.usecase.AddCategoryUseCase,
     private val archiveCategoryUseCase: com.example.solidus.domain.usecase.ArchiveCategoryUseCase,
-    private val currencyRepository: com.example.solidus.domain.repository.CurrencyRepository
+    private val currencyRepository: com.example.solidus.domain.repository.CurrencyRepository,
+    private val settingsRepository: com.example.solidus.domain.repository.SettingsRepository,
+    private val currencyConverter: com.example.solidus.domain.usecase.CurrencyConverterUseCase
 ) : ViewModel() {
 
     init {
@@ -45,6 +49,15 @@ class TransactionViewModel(
 
     private val _endDate = MutableStateFlow<Long?>(null)
     val endDate: StateFlow<Long?> = _endDate.asStateFlow()
+
+    val selectedCurrency = settingsRepository.selectedCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "RUB")
+
+    val hideBalance = settingsRepository.hideBalance
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    private val rates = currencyRepository.getRates()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setCategoryFilter(categoryId: Long?) {
         _selectedCategoryId.value = categoryId
@@ -71,6 +84,20 @@ class TransactionViewModel(
         initialValue = UiState.Loading
     )
 
+    val convertedTransactions: StateFlow<UiState<List<Transaction>>> = combine(
+        transactions, selectedCurrency, rates
+    ) { state, targetCurrency, rateList ->
+        if (state is UiState.Success) {
+            val converted = state.data.map { tx ->
+                val newAmount = currencyConverter.convert(tx.amount, tx.currencyCode, targetCurrency, rateList)
+                tx.copy(amount = newAmount, currencyCode = targetCurrency)
+            }
+            UiState.Success(converted)
+        } else {
+            state
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UiState.Loading)
+
     val categories: StateFlow<List<Category>> = getCategoriesUseCase()
         .stateIn(
             scope = viewModelScope,
@@ -86,7 +113,7 @@ class TransactionViewModel(
             initialValue = emptyList()
         )
 
-    val balance: StateFlow<Double> = transactions
+    val balance: StateFlow<Double> = convertedTransactions
         .map { state ->
             if (state is UiState.Success) {
                 state.data.sumOf { if (it.type == TransactionType.INCOME) it.amount else -it.amount }
@@ -99,6 +126,29 @@ class TransactionViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0.0
         )
+
+    val categoryExpenses: StateFlow<List<CategoryExpense>> = combine(
+        convertedTransactions, categories
+    ) { state, catList ->
+        if (state is UiState.Success) {
+            val expenses = state.data.filter { it.type == TransactionType.EXPENSE }
+            val totalExpense = expenses.sumOf { it.amount }
+            if (totalExpense == 0.0) return@combine emptyList()
+
+            val grouped = expenses.groupBy { it.categoryId }
+            grouped.map { (catId, txs) ->
+                val catAmount = txs.sumOf { it.amount }
+                val cat = catList.find { it.id == catId }
+                CategoryExpense(
+                    category = cat,
+                    amount = catAmount,
+                    percentage = (catAmount / totalExpense).toFloat()
+                )
+            }.sortedByDescending { it.amount }
+        } else {
+            emptyList()
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun validateInput(title: String, amountText: String, categoryId: Long?): ValidationResult {
         val titleValid = title.isNotBlank()
@@ -128,20 +178,43 @@ class TransactionViewModel(
         }
     }
 
-    fun addTransaction(title: String, amount: Double, type: TransactionType, categoryId: Long? = null) {
+    fun addTransaction(title: String, amount: Double, type: TransactionType, categoryId: Long? = null, date: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             try {
                 addTransactionUseCase(
                     Transaction(
                         title = title,
                         amount = amount,
-                        date = System.currentTimeMillis(),
+                        date = date,
                         type = type,
-                        categoryId = categoryId
+                        categoryId = categoryId,
+                        currencyCode = selectedCurrency.value
                     )
                 )
             } catch (e: Exception) {
                 // Here we would handle UI events for errors
+                e.printStackTrace()
+            }
+        }
+    }
+
+    suspend fun getTransaction(id: Long): Transaction? = getTransactionByIdUseCase(id)
+
+    fun updateTransaction(id: Long, title: String, amount: Double, type: TransactionType, categoryId: Long? = null, date: Long) {
+        viewModelScope.launch {
+            try {
+                updateTransactionUseCase(
+                    Transaction(
+                        id = id,
+                        title = title,
+                        amount = amount,
+                        date = date,
+                        type = type,
+                        categoryId = categoryId,
+                        currencyCode = selectedCurrency.value
+                    )
+                )
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
@@ -155,3 +228,9 @@ data class ValidationResult(
 ) {
     val isValid: Boolean get() = isTitleValid && isAmountValid && isCategoryValid
 }
+
+data class CategoryExpense(
+    val category: Category?,
+    val amount: Double,
+    val percentage: Float
+)

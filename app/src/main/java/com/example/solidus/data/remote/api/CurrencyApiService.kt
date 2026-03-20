@@ -7,6 +7,6 @@ import io.ktor.client.request.get
 
 class CurrencyApiService(private val client: HttpClient) {
     suspend fun getLatestRates(): CurrencyResponseDto {
-        return client.get("https://api.frankfurter.app/latest").body()
+        return client.get("https://open.er-api.com/v6/latest/EUR").body()
     }
 }

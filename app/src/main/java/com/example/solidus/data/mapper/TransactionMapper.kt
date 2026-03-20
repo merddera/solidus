@@ -21,6 +21,7 @@ fun Transaction.toEntity(): TransactionEntity {
         title = title,
         date = date,
         type = type,
-        categoryId = categoryId
+        categoryId = categoryId,
+        currencyCode = currencyCode
     )
 }

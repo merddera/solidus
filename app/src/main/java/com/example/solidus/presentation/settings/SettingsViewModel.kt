@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.solidus.domain.model.CurrencyRate
 import com.example.solidus.domain.repository.CurrencyRepository
 import com.example.solidus.domain.repository.SettingsRepository
+import com.example.solidus.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -12,7 +13,8 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
-    currencyRepository: CurrencyRepository
+    private val currencyRepository: CurrencyRepository,
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
 
     val selectedCurrency: StateFlow<String> = settingsRepository.selectedCurrency
@@ -24,9 +26,15 @@ class SettingsViewModel(
     val availableCurrencies: StateFlow<List<CurrencyRate>> = currencyRepository.getRates()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun setSelectedCurrency(currencyCode: String) {
+    fun setSelectedCurrency(currency: String) {
         viewModelScope.launch {
-            settingsRepository.setSelectedCurrency(currencyCode)
+            settingsRepository.setSelectedCurrency(currency)
+        }
+    }
+
+    fun clearAllTransactions() {
+        viewModelScope.launch {
+            transactionRepository.clearAllTransactions()
         }
     }
 

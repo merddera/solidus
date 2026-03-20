@@ -12,5 +12,6 @@ data class TransactionEntity(
     val title: String,
     val date: Long,
     val type: TransactionType,
-    val categoryId: Long? = null
+    val categoryId: Long? = null,
+    val currencyCode: String = "RUB"
 )

@@ -16,6 +16,19 @@ class TransactionRepositoryImpl(
         dao.insert(transaction.toEntity())
     }
 
+    override suspend fun updateTransaction(transaction: Transaction) {
+        dao.update(transaction.toEntity())
+    }
+
+    override suspend fun getTransactionById(id: Long): Transaction? {
+        return dao.getTransactionById(id)?.toDomain()
+    }
+
+    override suspend fun clearAllTransactions() {
+        dao.clearAll()
+        dao.clearUserCategories()
+    }
+
     override fun getTransactions(categoryId: Long?, startDate: Long?, endDate: Long?): Flow<List<Transaction>> {
         return dao.getFilteredTransactions(categoryId, startDate, endDate).map { entities ->
             entities.map { it.toDomain() }
