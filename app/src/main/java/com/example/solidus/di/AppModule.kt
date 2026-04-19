@@ -1,6 +1,8 @@
 package com.example.solidus.di
 
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.solidus.data.local.AppDatabase
 import com.example.solidus.data.repository.TransactionRepositoryImpl
 import com.example.solidus.domain.repository.TransactionRepository
@@ -18,13 +20,24 @@ import org.koin.dsl.module
 
 val appModule = module {
     // Database
+    // MIGRATION: When adding new fields to entities, add a new Migration object here.
+    // NEVER use fallbackToDestructiveMigration() in production — it deletes all user data.
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Added currencyCode column to transactions table
+            database.execSQL(
+                "ALTER TABLE transactions ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'RUB'"
+            )
+        }
+    }
+
     single {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java,
             "solidus_db"
         )
-        .fallbackToDestructiveMigration()
+        .addMigrations(MIGRATION_4_5)
         .addCallback(object : androidx.room.RoomDatabase.Callback() {
             override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 super.onCreate(db)
