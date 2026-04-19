@@ -8,6 +8,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.solidus.R
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -16,19 +19,19 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     viewModel: SettingsViewModel = koinViewModel()
 ) {
-    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
-    val hideBalance by viewModel.hideBalance.collectAsState()
-    val currencies by viewModel.availableCurrencies.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
+    val hideBalance by viewModel.hideBalance.collectAsStateWithLifecycle()
+    val currencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     var showClearDialog by remember { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Настройки") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -46,7 +49,7 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Скрыть баланс на главном экране", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.hide_balance), style = MaterialTheme.typography.bodyLarge)
                 Switch(
                     checked = hideBalance,
                     onCheckedChange = { viewModel.setHideBalance(it) }
@@ -55,7 +58,7 @@ fun SettingsScreen(
 
             Divider()
 
-            Text("Базовая валюта", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.base_currency), style = MaterialTheme.typography.bodyLarge)
             
             val popularCurrencies = mapOf("USD" to "$", "EUR" to "€", "RUB" to "₽", "CNY" to "¥", "GBP" to "£")
 
@@ -67,7 +70,7 @@ fun SettingsScreen(
                     value = popularCurrencies[selectedCurrency]?.let { "$it $selectedCurrency" } ?: selectedCurrency,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Валюта") },
+                    label = { Text(stringResource(R.string.currency)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
@@ -109,7 +112,7 @@ fun SettingsScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Очистить все данные")
+                Text(stringResource(R.string.clear_data))
             }
         }
     }
@@ -117,18 +120,18 @@ fun SettingsScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text("Внимание") },
-            text = { Text("Вы уверены, что хотите безвозвратно удалить все транзакции? Это действие нельзя отменить.") },
+            title = { Text(stringResource(R.string.warning)) },
+            text = { Text(stringResource(R.string.clear_data_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.clearAllTransactions()
                     showClearDialog = false
                 }) {
-                    Text("Удалить", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) { Text("Отмена") }
+                TextButton(onClick = { showClearDialog = false }) { Text(stringResource(R.string.cancel)) }
             }
         )
     }

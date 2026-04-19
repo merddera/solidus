@@ -8,9 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 import com.example.solidus.presentation.TransactionViewModel
+import com.example.solidus.presentation.UiState
+import com.example.solidus.presentation.home.TransactionItem
+import com.example.solidus.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -18,8 +23,8 @@ fun TransactionsTab(
     onNavigateToEdit: (Long) -> Unit,
     viewModel: TransactionViewModel = koinViewModel()
 ) {
-    val transactionsState by viewModel.convertedTransactions.collectAsState()
-    val categories by viewModel.categories.collectAsState()
+    val transactionsState by viewModel.convertedTransactions.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
@@ -48,7 +53,7 @@ fun TransactionsTab(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        val selectedCategoryId by viewModel.selectedCategoryId.collectAsState()
+        val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
 
         androidx.compose.foundation.lazy.LazyRow(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -72,23 +77,23 @@ fun TransactionsTab(
                     }
                 )
             }
-            items(categories) { category ->
+            items(items = categories, key = { it.id }) { category ->
                 FilterChip(selected = selectedCategoryId == category.id, onClick = { viewModel.setCategoryFilter(category.id) }, label = { Text(category.name) })
             }
         }
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             when (val state = transactionsState) {
-                is com.example.solidus.presentation.UiState.Loading -> CircularProgressIndicator(modifier = Modifier.padding(top = 32.dp))
-                is com.example.solidus.presentation.UiState.Error -> Text("Ошибка: ${state.message}", color = MaterialTheme.colorScheme.error)
-                is com.example.solidus.presentation.UiState.Success -> {
+                is UiState.Loading -> CircularProgressIndicator(modifier = Modifier.padding(top = 32.dp))
+                is UiState.Error -> Text(stringResource(R.string.error, state.message), color = MaterialTheme.colorScheme.error)
+                is UiState.Success -> {
                     if (state.data.isEmpty()) {
-                        Text("Нет транзакций", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 32.dp))
+                        Text(stringResource(R.string.no_transactions), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 32.dp))
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 80.dp)) {
-                            items(state.data) { transaction ->
+                            items(items = state.data, key = { it.id }) { transaction ->
                                 val category = categories.find { it.id == transaction.categoryId }
-                                com.example.solidus.presentation.home.TransactionItem(transaction, category) {
+                                TransactionItem(transaction, category) {
                                     onNavigateToEdit(transaction.id)
                                 }
                             }

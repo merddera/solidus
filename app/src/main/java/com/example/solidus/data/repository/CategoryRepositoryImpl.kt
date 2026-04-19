@@ -12,12 +12,12 @@ class CategoryRepositoryImpl(
 ) : CategoryRepository {
     override fun getCategories(): Flow<List<Category>> {
         return dao.getAllCategories().map { entities ->
-            entities.map { Category(id = it.id, name = it.name, color = it.color, isArchived = it.isArchived) }
+            entities.map { Category(id = it.id, name = it.name, color = it.color, iconName = it.iconName, isArchived = it.isArchived) }
         }
     }
 
     override suspend fun addCategory(category: Category) {
-        dao.insertCategory(CategoryEntity(name = category.name, color = category.color, isArchived = category.isArchived))
+        dao.insertCategory(CategoryEntity(name = category.name, color = category.color, iconName = category.iconName, isArchived = category.isArchived))
     }
 
     override suspend fun archiveCategory(categoryId: Long) {

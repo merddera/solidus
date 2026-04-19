@@ -10,7 +10,9 @@ fun TransactionEntity.toDomain(): Transaction {
         title = title,
         date = date,
         type = type,
-        categoryId = categoryId
+        categoryId = categoryId,
+        accountId = accountId,
+        currencyCode = currencyCode
     )
 }
 
@@ -22,6 +24,7 @@ fun Transaction.toEntity(): TransactionEntity {
         date = date,
         type = type,
         categoryId = categoryId,
+        accountId = accountId,
         currencyCode = currencyCode
     )
 }

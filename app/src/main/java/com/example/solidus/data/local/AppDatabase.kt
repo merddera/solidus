@@ -9,10 +9,13 @@ import com.example.solidus.data.local.dao.CategoryDao
 import com.example.solidus.data.local.entity.CategoryEntity
 import com.example.solidus.data.local.dao.CurrencyRateDao
 import com.example.solidus.data.local.entity.CurrencyRateEntity
+import com.example.solidus.data.local.dao.AccountDao
+import com.example.solidus.data.local.entity.AccountEntity
 
-@Database(entities = [TransactionEntity::class, CategoryEntity::class, CurrencyRateEntity::class], version = 5, exportSchema = false)
+@Database(entities = [TransactionEntity::class, CategoryEntity::class, CurrencyRateEntity::class, AccountEntity::class], version = 6, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun categoryDao(): CategoryDao
     abstract fun currencyRateDao(): CurrencyRateDao
+    abstract fun accountDao(): AccountDao
 }

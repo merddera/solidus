@@ -3,14 +3,16 @@ package com.example.solidus.presentation.analytics
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.getValue
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.solidus.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
@@ -22,16 +24,16 @@ fun AnalyticsScreen(
     onNavigateBack: () -> Unit,
     viewModel: TransactionViewModel = koinViewModel()
 ) {
-    val expenses by viewModel.categoryExpenses.collectAsState()
-    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
+    val expenses by viewModel.categoryExpenses.collectAsStateWithLifecycle()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Аналитика расходов") },
+                title = { Text(stringResource(R.string.analytics)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -39,7 +41,7 @@ fun AnalyticsScreen(
     ) { padding ->
         if (expenses.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("Нет данных о расходах")
+                Text(stringResource(R.string.no_categories))
             }
         } else {
             LazyColumn(
@@ -49,7 +51,7 @@ fun AnalyticsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(expenses) { expense ->
+                items(items = expenses, key = { it.category?.id ?: -1L }) { expense ->
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),

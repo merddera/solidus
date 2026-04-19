@@ -13,5 +13,6 @@ data class TransactionEntity(
     val date: Long,
     val type: TransactionType,
     val categoryId: Long? = null,
+    val accountId: Long,
     val currencyCode: String = "RUB"
 )

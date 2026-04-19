@@ -21,6 +21,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.example.solidus.presentation.UiState
 
 import com.example.solidus.domain.model.Category
+import com.example.solidus.domain.model.Account
+import com.example.solidus.domain.repository.AccountRepository
 
 class TransactionViewModel(
     getTransactionsUseCase: GetTransactionsUseCase,
@@ -32,6 +34,7 @@ class TransactionViewModel(
     private val archiveCategoryUseCase: com.example.solidus.domain.usecase.ArchiveCategoryUseCase,
     private val currencyRepository: com.example.solidus.domain.repository.CurrencyRepository,
     private val settingsRepository: com.example.solidus.domain.repository.SettingsRepository,
+    private val accountRepository: AccountRepository,
     private val currencyConverter: com.example.solidus.domain.usecase.CurrencyConverterUseCase
 ) : ViewModel() {
 
@@ -113,6 +116,13 @@ class TransactionViewModel(
             initialValue = emptyList()
         )
 
+    val accounts: StateFlow<List<Account>> = accountRepository.getAccounts()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     val balance: StateFlow<Double> = convertedTransactions
         .map { state ->
             if (state is UiState.Success) {
@@ -150,12 +160,13 @@ class TransactionViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun validateInput(title: String, amountText: String, categoryId: Long?): ValidationResult {
+    fun validateInput(title: String, amountText: String, categoryId: Long?, accountId: Long?): ValidationResult {
         val titleValid = title.isNotBlank()
         val amount = amountText.toDoubleOrNull()
         val amountValid = amount != null && amount > 0
         val categoryValid = categoryId != null
-        return ValidationResult(titleValid, amountValid, categoryValid)
+        val accountValid = accountId != null
+        return ValidationResult(titleValid, amountValid, categoryValid, accountValid)
     }
 
     fun archiveCategory(categoryId: Long) {
@@ -178,7 +189,7 @@ class TransactionViewModel(
         }
     }
 
-    fun addTransaction(title: String, amount: Double, type: TransactionType, categoryId: Long? = null, date: Long = System.currentTimeMillis()) {
+    fun addTransaction(title: String, amount: Double, type: TransactionType, categoryId: Long? = null, accountId: Long, date: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             try {
                 addTransactionUseCase(
@@ -188,6 +199,7 @@ class TransactionViewModel(
                         date = date,
                         type = type,
                         categoryId = categoryId,
+                        accountId = accountId,
                         currencyCode = selectedCurrency.value
                     )
                 )
@@ -200,7 +212,7 @@ class TransactionViewModel(
 
     suspend fun getTransaction(id: Long): Transaction? = getTransactionByIdUseCase(id)
 
-    fun updateTransaction(id: Long, title: String, amount: Double, type: TransactionType, categoryId: Long? = null, date: Long) {
+    fun updateTransaction(id: Long, title: String, amount: Double, type: TransactionType, categoryId: Long? = null, accountId: Long, date: Long) {
         viewModelScope.launch {
             try {
                 updateTransactionUseCase(
@@ -211,6 +223,7 @@ class TransactionViewModel(
                         date = date,
                         type = type,
                         categoryId = categoryId,
+                        accountId = accountId,
                         currencyCode = selectedCurrency.value
                     )
                 )
@@ -224,9 +237,10 @@ class TransactionViewModel(
 data class ValidationResult(
     val isTitleValid: Boolean,
     val isAmountValid: Boolean,
-    val isCategoryValid: Boolean
+    val isCategoryValid: Boolean,
+    val isAccountValid: Boolean
 ) {
-    val isValid: Boolean get() = isTitleValid && isAmountValid && isCategoryValid
+    val isValid: Boolean get() = isTitleValid && isAmountValid && isCategoryValid && isAccountValid
 }
 
 data class CategoryExpense(

@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.solidus.R
 import org.koin.androidx.compose.koinViewModel
 import com.example.solidus.domain.model.TransactionType
 import com.example.solidus.presentation.TransactionViewModel
@@ -25,19 +28,25 @@ fun AddTransactionScreen(
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var isIncome by remember { mutableStateOf(false) }
-    val activeCategories by viewModel.activeCategories.collectAsState()
-    var expanded by remember { mutableStateOf(false) }
+    val activeCategories by viewModel.activeCategories.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
+    var expandedCategory by remember { mutableStateOf(false) }
+    var expandedAccount by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<com.example.solidus.domain.model.Category?>(null) }
+    var selectedAccount by remember { mutableStateOf<com.example.solidus.domain.model.Account?>(null) }
     var titleError by remember { mutableStateOf(false) }
     var amountError by remember { mutableStateOf(false) }
     var categoryError by remember { mutableStateOf(false) }
+    var accountError by remember { mutableStateOf(false) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
     var selectedTimeMillis by remember { mutableStateOf<Long?>(null) }
-
-    LaunchedEffect(transactionId) {
+    LaunchedEffect(transactionId, accounts) {
+        if (accounts.isNotEmpty() && selectedAccount == null) {
+            selectedAccount = accounts.first()
+        }
         if (transactionId != null) {
             val transaction = viewModel.getTransaction(transactionId)
             if (transaction != null) {
@@ -45,6 +54,7 @@ fun AddTransactionScreen(
                 amount = transaction.amount.toString()
                 isIncome = transaction.type == TransactionType.INCOME
                 selectedCategory = activeCategories.find { it.id == transaction.categoryId }
+                selectedAccount = accounts.find { it.id == transaction.accountId } ?: accounts.firstOrNull()
                 datePickerState.setSelection(transaction.date)
                 selectedTimeMillis = transaction.date
             }
@@ -55,10 +65,10 @@ fun AddTransactionScreen(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("ОК") }
+                TextButton(onClick = { showDatePicker = false }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Отмена") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -68,12 +78,12 @@ fun AddTransactionScreen(
     if (showAddCategoryDialog) {
         AlertDialog(
             onDismissRequest = { showAddCategoryDialog = false },
-            title = { Text("Новая категория") },
+            title = { Text(stringResource(R.string.new_category)) },
             text = {
                 OutlinedTextField(
                     value = newCategoryName,
                     onValueChange = { newCategoryName = it },
-                    label = { Text("Название") }
+                    label = { Text(stringResource(R.string.title)) }
                 )
             },
             confirmButton = {
@@ -84,12 +94,12 @@ fun AddTransactionScreen(
                         newCategoryName = ""
                     }
                 }) {
-                    Text("Добавить")
+                    Text(stringResource(R.string.add))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddCategoryDialog = false }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -98,10 +108,10 @@ fun AddTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Добавить транзакцию") },
+                title = { Text(stringResource(R.string.add_transaction)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -117,9 +127,9 @@ fun AddTransactionScreen(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it; titleError = false },
-                label = { Text("Название") },
+                label = { Text(stringResource(R.string.title)) },
                 isError = titleError,
-                supportingText = { if (titleError) Text("Обязательное поле") },
+                supportingText = { if (titleError) Text(stringResource(R.string.required_field)) },
                 keyboardOptions = KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -127,36 +137,67 @@ fun AddTransactionScreen(
             OutlinedTextField(
                 value = amount,
                 onValueChange = { amount = it; amountError = false },
-                label = { Text("Сумма") },
+                label = { Text(stringResource(R.string.amount)) },
                 isError = amountError,
-                supportingText = { if (amountError) Text("Сумма должна быть > 0") },
+                supportingText = { if (amountError) Text(stringResource(R.string.amount_positive)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
             ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+                expanded = expandedAccount,
+                onExpandedChange = { expandedAccount = !expandedAccount }
             ) {
                 OutlinedTextField(
-                    value = selectedCategory?.name ?: "Выберите категорию",
+                    value = selectedAccount?.name ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    isError = categoryError,
-                    supportingText = { if (categoryError) Text("Выберите категорию") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    isError = accountError,
+                    label = { Text(stringResource(R.string.account)) },
+                    supportingText = { if (accountError) Text(stringResource(R.string.required_field)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedAccount) },
                     modifier = Modifier.menuAnchor().fillMaxWidth()
                 )
                 ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    expanded = expandedAccount,
+                    onDismissRequest = { expandedAccount = false }
+                ) {
+                    accounts.forEach { accountItem ->
+                        DropdownMenuItem(
+                            text = { Text(accountItem.name) },
+                            onClick = {
+                                selectedAccount = accountItem
+                                expandedAccount = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            ExposedDropdownMenuBox(
+                expanded = expandedCategory,
+                onExpandedChange = { expandedCategory = !expandedCategory }
+            ) {
+                OutlinedTextField(
+                    value = selectedCategory?.name ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    isError = categoryError,
+                    label = { Text(stringResource(R.string.category)) },
+                    supportingText = { if (categoryError) Text(stringResource(R.string.required_field)) },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategory) },
+                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = expandedCategory,
+                    onDismissRequest = { expandedCategory = false }
                 ) {
                     activeCategories.forEach { category ->
                         DropdownMenuItem(
                             text = { Text(category.name) },
                             onClick = {
                                 selectedCategory = category
-                                expanded = false
+                                expandedCategory = false
                             },
                             trailingIcon = {
                                 IconButton(onClick = { 
@@ -169,9 +210,9 @@ fun AddTransactionScreen(
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("➕ Добавить категорию...", color = MaterialTheme.colorScheme.primary) },
+                        text = { Text("➕ " + stringResource(R.string.new_category), color = MaterialTheme.colorScheme.primary) },
                         onClick = {
-                            expanded = false
+                            expandedCategory = false
                             showAddCategoryDialog = true
                         }
                     )
@@ -179,7 +220,7 @@ fun AddTransactionScreen(
             }
 
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text("Доход?")
+                Text(stringResource(R.string.is_income))
                 Switch(
                     checked = isIncome,
                     onCheckedChange = { isIncome = it },
@@ -197,7 +238,7 @@ fun AddTransactionScreen(
                     } ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Дата") },
+                    label = { Text(stringResource(R.string.date)) },
                     modifier = Modifier.weight(1f),
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
@@ -212,7 +253,7 @@ fun AddTransactionScreen(
                     } ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Время") },
+                    label = { Text(stringResource(R.string.time)) },
                     modifier = Modifier.weight(1f),
                     trailingIcon = {
                         val context = androidx.compose.ui.platform.LocalContext.current
@@ -240,12 +281,13 @@ fun AddTransactionScreen(
 
             Button(
                 onClick = {
-                    val result = viewModel.validateInput(title, amount, selectedCategory?.id)
+                    val result = viewModel.validateInput(title, amount, selectedCategory?.id, selectedAccount?.id)
                     titleError = !result.isTitleValid
                     amountError = !result.isAmountValid
                     categoryError = !result.isCategoryValid
+                    accountError = !result.isAccountValid
 
-                    if (result.isValid) {
+                    if (result.isValid && selectedAccount != null) {
                         val finalDate = datePickerState.selectedDateMillis
                         val combinedDate = if (selectedTimeMillis != null) {
                             val dateCal = java.util.Calendar.getInstance().apply { timeInMillis = finalDate ?: System.currentTimeMillis() }
@@ -270,6 +312,7 @@ fun AddTransactionScreen(
                                 amount = amount.toDouble(),
                                 type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
                                 categoryId = selectedCategory?.id,
+                                accountId = selectedAccount!!.id,
                                 date = combinedDate
                             )
                         } else {
@@ -278,6 +321,7 @@ fun AddTransactionScreen(
                                 amount = amount.toDouble(),
                                 type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE,
                                 categoryId = selectedCategory?.id,
+                                accountId = selectedAccount!!.id,
                                 date = combinedDate
                             )
                         }
@@ -286,7 +330,7 @@ fun AddTransactionScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Сохранить")
+                Text(stringResource(R.string.save))
             }
         }
     }

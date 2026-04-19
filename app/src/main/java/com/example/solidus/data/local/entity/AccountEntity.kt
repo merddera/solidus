@@ -3,12 +3,10 @@ package com.example.solidus.data.local.entity
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "categories")
-data class CategoryEntity(
+@Entity(tableName = "accounts")
+data class AccountEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
-    val color: String,
-    val iconName: String = "ic_category_default",
-    val isArchived: Boolean = false
+    val balance: Double
 )

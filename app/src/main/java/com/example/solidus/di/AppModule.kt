@@ -16,34 +16,27 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.androidx.workmanager.dsl.worker
 import org.koin.dsl.module
 
 val appModule = module {
     // Database
-    // MIGRATION: When adding new fields to entities, add a new Migration object here.
-    // NEVER use fallbackToDestructiveMigration() in production — it deletes all user data.
-    val MIGRATION_4_5 = object : Migration(4, 5) {
-        override fun migrate(database: SupportSQLiteDatabase) {
-            // Added currencyCode column to transactions table
-            database.execSQL(
-                "ALTER TABLE transactions ADD COLUMN currencyCode TEXT NOT NULL DEFAULT 'RUB'"
-            )
-        }
-    }
-
     single {
         Room.databaseBuilder(
             androidContext(),
             AppDatabase::class.java,
             "solidus_db"
         )
-        .addMigrations(MIGRATION_4_5)
+        .fallbackToDestructiveMigration()
         .addCallback(object : androidx.room.RoomDatabase.Callback() {
             override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 super.onCreate(db)
-                db.execSQL("INSERT INTO categories (name, color, isArchived) VALUES ('Еда', '#FF5722', 0)")
-                db.execSQL("INSERT INTO categories (name, color, isArchived) VALUES ('Транспорт', '#2196F3', 0)")
-                db.execSQL("INSERT INTO categories (name, color, isArchived) VALUES ('Зарплата', '#4CAF50', 0)")
+                // Insert default Categories
+                db.execSQL("INSERT INTO categories (name, color, iconName, isArchived) VALUES ('Еда', '#FF5722', 'ic_food', 0)")
+                db.execSQL("INSERT INTO categories (name, color, iconName, isArchived) VALUES ('Транспорт', '#2196F3', 'ic_transport', 0)")
+                db.execSQL("INSERT INTO categories (name, color, iconName, isArchived) VALUES ('Зарплата', '#4CAF50', 'ic_salary', 0)")
+                // Insert default Account
+                db.execSQL("INSERT INTO accounts (name, balance) VALUES ('Основной счет', 0.0)")
             }
         })
         .build()
@@ -66,12 +59,14 @@ val appModule = module {
     single { get<AppDatabase>().transactionDao() }
     single { get<AppDatabase>().categoryDao() }
     single { get<AppDatabase>().currencyRateDao() }
+    single { get<AppDatabase>().accountDao() }
 
     // Repository
     single<TransactionRepository> { TransactionRepositoryImpl(get()) }
     single<com.example.solidus.domain.repository.CategoryRepository> { com.example.solidus.data.repository.CategoryRepositoryImpl(get()) }
     single<com.example.solidus.domain.repository.SettingsRepository> { com.example.solidus.data.repository.SettingsRepositoryImpl(androidContext()) }
     single<com.example.solidus.domain.repository.CurrencyRepository> { com.example.solidus.data.repository.CurrencyRepositoryImpl(get(), get(), get()) }
+    single<com.example.solidus.domain.repository.AccountRepository> { com.example.solidus.data.repository.AccountRepositoryImpl(get()) }
 
     // UseCases
     factory { com.example.solidus.domain.usecase.GetTransactionsUseCase(get()) }
@@ -84,6 +79,9 @@ val appModule = module {
     factory { com.example.solidus.domain.usecase.CurrencyConverterUseCase() }
 
     // ViewModel
-    viewModel { TransactionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { TransactionViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { com.example.solidus.presentation.settings.SettingsViewModel(get(), get(), get()) }
+
+    // Worker
+    worker { com.example.solidus.data.worker.CurrencySyncWorker(get(), get(), get()) }
 }

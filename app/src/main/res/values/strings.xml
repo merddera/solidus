@@ -1,3 +1,36 @@
 <resources>
     <string name="app_name">Solidus</string>
+    <string name="total_balance">Общий баланс</string>
+    <string name="incomes">Доходы</string>
+    <string name="expenses">Расходы</string>
+    <string name="recent_transactions">Последние транзакции</string>
+    <string name="no_transactions">Нет транзакций</string>
+    <string name="no_categories">Нет данных о расходах</string>
+    <string name="add">Добавить</string>
+    <string name="cancel">Отмена</string>
+    <string name="error">Ошибка: %s</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
+    <string name="settings">Настройки</string>
+    <string name="analytics">Аналитика</string>
+    <string name="transactions">Транзакции</string>
+    <string name="base_currency">Базовая валюта</string>
+    <string name="currency">Валюта</string>
+    <string name="hide_balance">Скрыть баланс на главном экране</string>
+    <string name="clear_data">Очистить все данные</string>
+    <string name="warning">Внимание</string>
+    <string name="clear_data_message">Вы уверены, что хотите безвозвратно удалить все транзакции? Это действие нельзя отменить.</string>
+    <string name="delete">Удалить</string>
+    <string name="back">Назад</string>
+    <string name="add_transaction">Добавить транзакцию</string>
+    <string name="title">Название</string>
+    <string name="amount">Сумма</string>
+    <string name="category">Категория</string>
+    <string name="account">Счет</string>
+    <string name="is_income">Доход?</string>
+    <string name="save">Сохранить</string>
+    <string name="required_field">Обязательное поле</string>
+    <string name="amount_positive">Сумма должна быть &gt; 0</string>
+    <string name="new_category">Новая категория</string>
+    <string name="date">Дата</string>
+    <string name="time">Время</string>
 </resources>
