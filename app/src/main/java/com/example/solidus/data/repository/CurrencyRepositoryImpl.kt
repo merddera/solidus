@@ -26,7 +26,7 @@ class CurrencyRepositoryImpl(
             val response = api.getLatestRates()
             val rateEntities = response.rates.map { (code, rate) ->
                 CurrencyRateEntity(currencyCode = code, rate = rate)
-            } + CurrencyRateEntity(currencyCode = response.base_code, rate = 1.0)
+            } + CurrencyRateEntity(currencyCode = response.baseCode, rate = 1.0)
             
             dao.clearRates()
             dao.insertRates(rateEntities)
