@@ -28,9 +28,9 @@ val appModule = module {
         .addCallback(object : androidx.room.RoomDatabase.Callback() {
             override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 super.onCreate(db)
-                db.execSQL("INSERT INTO categories (name, color) VALUES ('Еда', '#FF5722')")
-                db.execSQL("INSERT INTO categories (name, color) VALUES ('Транспорт', '#2196F3')")
-                db.execSQL("INSERT INTO categories (name, color) VALUES ('Зарплата', '#4CAF50')")
+                db.execSQL("INSERT INTO categories (name, color, isArchived) VALUES ('Еда', '#FF5722', 0)")
+                db.execSQL("INSERT INTO categories (name, color, isArchived) VALUES ('Транспорт', '#2196F3', 0)")
+                db.execSQL("INSERT INTO categories (name, color, isArchived) VALUES ('Зарплата', '#4CAF50', 0)")
             }
         })
         .build()
