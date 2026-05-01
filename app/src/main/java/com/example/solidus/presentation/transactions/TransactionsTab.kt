@@ -16,6 +16,8 @@ import com.example.solidus.presentation.TransactionViewModel
 import com.example.solidus.presentation.UiState
 import com.example.solidus.presentation.home.TransactionItem
 import com.example.solidus.R
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,25 +29,26 @@ fun TransactionsTab(
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
+    val dateFormatter = remember { SimpleDateFormat("dd.MM", Locale.getDefault()) }
 
     if (showDateRangePicker) {
         DatePickerDialog(
             onDismissRequest = { showDateRangePicker = false },
             confirmButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showDateRangePicker = false
                     viewModel.setDateFilter(
                         dateRangePickerState.selectedStartDateMillis,
                         dateRangePickerState.selectedEndDateMillis
                     )
-                }) { Text("Применить") }
+                }) { Text(stringResource(R.string.apply)) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showDateRangePicker = false
                     dateRangePickerState.setSelection(null, null)
                     viewModel.setDateFilter(null, null)
-                }) { Text("Сбросить") }
+                }) { Text(stringResource(R.string.reset)) }
             }
         ) {
             DateRangePicker(state = dateRangePickerState, modifier = Modifier.fillMaxWidth().height(400.dp))
@@ -59,7 +62,7 @@ fun TransactionsTab(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            item { FilterChip(selected = selectedCategoryId == null, onClick = { viewModel.setCategoryFilter(null) }, label = { Text("Все") }) }
+            item { FilterChip(selected = selectedCategoryId == null, onClick = { viewModel.setCategoryFilter(null) }, label = { Text(stringResource(R.string.filter_all)) }) }
             item {
                 val hasDateFilter = dateRangePickerState.selectedStartDateMillis != null
                 FilterChip(
@@ -67,12 +70,11 @@ fun TransactionsTab(
                     onClick = { showDateRangePicker = true },
                     label = {
                         if (hasDateFilter) {
-                            val sdf = java.text.SimpleDateFormat("dd.MM", java.util.Locale.getDefault())
-                            val start = sdf.format(java.util.Date(dateRangePickerState.selectedStartDateMillis!!))
-                            val end = dateRangePickerState.selectedEndDateMillis?.let { sdf.format(java.util.Date(it)) } ?: ""
+                            val start = dateFormatter.format(java.util.Date(dateRangePickerState.selectedStartDateMillis!!))
+                            val end = dateRangePickerState.selectedEndDateMillis?.let { dateFormatter.format(java.util.Date(it)) } ?: ""
                             Text("$start - $end")
                         } else {
-                            Text("Период")
+                            Text(stringResource(R.string.filter_period))
                         }
                     }
                 )
@@ -104,3 +106,5 @@ fun TransactionsTab(
         }
     }
 }
+
+

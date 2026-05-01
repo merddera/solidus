@@ -33,4 +33,13 @@
     <string name="new_category">Новая категория</string>
     <string name="date">Дата</string>
     <string name="time">Время</string>
+    <string name="filter_all">Все</string>
+    <string name="filter_period">Период</string>
+    <string name="apply">Применить</string>
+    <string name="reset">Сбросить</string>
+    <string name="no_category">Без категории</string>
+    <string name="pick_date">Выбрать дату</string>
+    <string name="pick_time">Выбрать время</string>
+    <string name="income_label">ДОХОД</string>
+    <string name="expense_label">РАСХОД</string>
 </resources>

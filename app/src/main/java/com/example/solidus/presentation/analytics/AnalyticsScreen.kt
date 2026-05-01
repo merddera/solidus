@@ -57,7 +57,7 @@ fun AnalyticsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(text = expense.category?.name ?: "Без категории", style = MaterialTheme.typography.bodyLarge)
+                            Text(text = expense.category?.name ?: stringResource(R.string.no_category), style = MaterialTheme.typography.bodyLarge)
                             Text(
                                 text = "${String.format(java.util.Locale.US, "%.2f", expense.amount)} $selectedCurrency",
                                 style = MaterialTheme.typography.bodyLarge
@@ -74,7 +74,7 @@ fun AnalyticsScreen(
                         Text(
                             text = "${(expense.percentage * 100).toInt()}%",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.End)
                         )
                     }

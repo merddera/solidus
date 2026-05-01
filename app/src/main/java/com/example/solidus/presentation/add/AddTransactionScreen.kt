@@ -17,6 +17,8 @@ import com.example.solidus.R
 import org.koin.androidx.compose.koinViewModel
 import com.example.solidus.domain.model.TransactionType
 import com.example.solidus.presentation.TransactionViewModel
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +45,8 @@ fun AddTransactionScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
     var selectedTimeMillis by remember { mutableStateOf<Long?>(null) }
+    val dateDisplayFormatter = remember { SimpleDateFormat("dd.MM.yyyy", Locale.getDefault()) }
+    val timeDisplayFormatter = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     LaunchedEffect(transactionId, accounts) {
         if (accounts.isNotEmpty() && selectedAccount == null) {
             selectedAccount = accounts.first()
@@ -233,24 +237,20 @@ fun AddTransactionScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedTextField(
-                    value = datePickerState.selectedDateMillis?.let { 
-                        java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault()).format(java.util.Date(it)) 
-                    } ?: "",
+                    value = datePickerState.selectedDateMillis?.let { dateDisplayFormatter.format(java.util.Date(it)) } ?: "",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.date)) },
                     modifier = Modifier.weight(1f),
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Выбрать дату")
+                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.pick_date))
                         }
                     }
                 )
 
                 OutlinedTextField(
-                    value = selectedTimeMillis?.let { 
-                        java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it)) 
-                    } ?: "",
+                    value = selectedTimeMillis?.let { timeDisplayFormatter.format(java.util.Date(it)) } ?: "",
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.time)) },
@@ -273,7 +273,7 @@ fun AddTransactionScreen(
                                 true
                             ).show()
                         }) {
-                            Icon(Icons.Default.Add, contentDescription = "Выбрать время")
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.pick_time))
                         }
                     }
                 )
